@@ -17,7 +17,7 @@ const UserSchema = new mongoose.Schema({
         required: [true, "Por favor rellena tu contraseña"],
     },
 
-    tokens: [],
+    token: [],
 
     avatar: String,
 });
