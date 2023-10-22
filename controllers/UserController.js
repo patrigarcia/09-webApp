@@ -1,6 +1,6 @@
 require("dotenv").config();
 
-const User = require("./path_to_User_model"); // Reemplaza 'path_to_User_model' con la ruta real a tu modelo de usuario
+const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
@@ -9,7 +9,7 @@ const UserController = {
         try {
             const userExists = await User.findOne({ email: req.body.email });
             if (userExists) {
-                return res.status(400).send("Email already exists");
+                return res.status(400).send("Este e-mail ya existe");
             }
 
             const salt = await bcrypt.genSalt(10);
@@ -22,7 +22,7 @@ const UserController = {
             });
             const savedUser = await user.save();
 
-            res.send({ user: savedUser._id });
+            res.status(200).send(`Te has dado de alta con éxito ${user.name}`);
         } catch (err) {
             res.status(400).send(err);
         }
@@ -30,20 +30,23 @@ const UserController = {
 
     async login(req, res) {
         try {
-            const user = await User.findOne({ email: req.body.email });
-            if (!user) {
-                return res.status(400).send("Email is not found");
-            }
+            const user = await User.findOne({
+                email: req.body.email,
+            });
 
-            const validPass = await bcrypt.compare(req.body.password, user.password);
-            if (!validPass) {
-                return res.status(400).send("Invalid password");
+            if (!user) {
+                return res.status(404).json({ message: "Usuario o contraseña incorrecto!" });
             }
 
             const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET);
-            res.header("auth-token", token).send(token);
-        } catch (err) {
-            res.status(400).send(err);
+            if (user.token.length > 4) user.token.shift();
+            user.token.push(token);
+
+            await user.save();
+
+            res.send({ message: `Bienvenid@ ${user.name}`, token });
+        } catch (error) {
+            console.error(error);
         }
     },
 };
